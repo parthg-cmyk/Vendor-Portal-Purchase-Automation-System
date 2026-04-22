@@ -5,6 +5,32 @@ app_description = "This is an Vendor Portal."
 app_email = "parth.g@sanskartechnolab.com"
 app_license = "mit"
 
+
+fixtures = [
+    {
+        "dt": "Custom Field",
+        "filters": [
+            ["dt", "=", "Supplier"]
+        ]
+    },
+    {
+        "dt": "Workflow",
+        "filters": [
+            ["name", "=", "Vendor Onboarding Approval"]
+        ]
+    }
+]
+
+override_doctype_class = {
+    "Purchase Order": "vendor_portal.overrides.purchase_order.CustomPurchaseOrder"
+}
+
+doc_events = {
+    "Purchase Receipt": {
+        "validate": "vendor_portal.overrides.purchase_receipt.validate",
+        "on_submit": "vendor_portal.overrides.purchase_receipt.on_submit"
+    }
+}
 # Apps
 # ------------------
 
