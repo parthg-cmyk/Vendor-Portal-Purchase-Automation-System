@@ -81,8 +81,7 @@ class CustomPurchaseOrder(PurchaseOrder):
             {
                 "doctype": "Vendor Rating Log",
                 "supplier": self.supplier,
-                "reference_doctype": "Purchase Order",
-                "reference_name": self.name,
+                "purchase_order": self.name,
                 "rating_type": "Pricing",
                 "score": score,
             }
@@ -96,8 +95,7 @@ class CustomPurchaseOrder(PurchaseOrder):
         logs = frappe.get_all(
             "Vendor Rating Log",
             filters={
-                "reference_doctype": "Purchase Order",
-                "reference_name": self.name,
+                "purchase_order": self.name,
             },
             pluck="name",
         )

@@ -7,18 +7,8 @@ app_license = "mit"
 
 
 fixtures = [
-    {
-        "dt": "Custom Field",
-        "filters": [
-            ["dt", "=", "Supplier"]
-        ]
-    },
-    {
-        "dt": "Workflow",
-        "filters": [
-            ["name", "=", "Vendor Onboarding Approval"]
-        ]
-    }
+    {"dt": "Custom Field", "filters": [["dt", "=", "Supplier"]]},
+    {"dt": "Workflow", "filters": [["name", "=", "Vendor Onboarding Approval"]]},
 ]
 
 override_doctype_class = {
@@ -28,13 +18,15 @@ override_doctype_class = {
 doc_events = {
     "Purchase Receipt": {
         "validate": "vendor_portal.overrides.purchase_receipt.validate",
-        "on_submit": "vendor_portal.overrides.purchase_receipt.on_submit"
+        "on_submit": "vendor_portal.overrides.purchase_receipt.on_submit",
     }
 }
 
 app_include_js = [
     "/assets/vendor_portal/js/purchase_order.js",
-    "/assets/vendor_portal/js/purchase_order_list.js"
+    "/assets/vendor_portal/js/purchase_order_list.js",
+    "/assets/vendor_portal/js/supplier.js",
+    "/assets/vendor_portal/js/vendor_onboarding.js"
 ]
 # Apps
 # ------------------
@@ -286,4 +278,3 @@ app_include_js = [
 # ------------
 # List of apps whose translatable strings should be excluded from this app's translations.
 # ignore_translatable_strings_from = []
-

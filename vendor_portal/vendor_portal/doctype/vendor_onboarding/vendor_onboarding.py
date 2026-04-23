@@ -30,18 +30,14 @@ class VendorOnboarding(Document):
             frappe.throw(_("Invalid PAN format"))
 
     def validate_email(self):
-        if self.email_id:
-            frappe.utils.validate_email_address(self.email_id, throw=True)
+        if self.email:
+            frappe.utils.validate_email_address(self.email, throw=True)
 
     def validate_minimum_documents(self):
         settings = frappe.get_single("Vendor Portal Settings")
 
-        if settings.required_documents:
-            uploaded_docs = [d.document_type for d in self.documents]
-
-            for doc in settings.required_documents:
-                if doc.document_type not in uploaded_docs:
-                    frappe.throw(_(f"Missing required document: {doc.document_type}"))
+        if settings.min_documents_required > len(self.documents):
+                frappe.throw(_(f"Minimum {settings.min_documents_required} Documents Required"))
 
     def check_duplicate_gst(self):
         if not self.gst_number:

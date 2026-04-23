@@ -78,8 +78,7 @@ def on_submit(doc, method):
         {
             "doctype": "Vendor Rating Log",
             "supplier": doc.supplier,
-            "reference_doctype": "Purchase Receipt",
-            "reference_name": doc.name,
+            "purchase_receipt": doc.name,
             "rating_type": "Delivery",
             "score": score,
         }

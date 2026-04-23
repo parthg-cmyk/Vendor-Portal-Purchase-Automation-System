@@ -7,6 +7,7 @@
  "engine": "InnoDB",
  "field_order": [
   "supplier",
+  "purchase_order",
   "purchase_receipt",
   "rating_type",
   "score",
@@ -63,12 +64,18 @@
    "fieldtype": "Date",
    "label": "Rating Date",
    "read_only": 1
+  },
+  {
+   "fieldname": "purchase_order",
+   "fieldtype": "Link",
+   "label": "Purchase Order",
+   "options": "Purchase Order"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-04-22 15:53:27.580365",
+ "modified": "2026-04-23 12:32:45.276983",
  "modified_by": "Administrator",
  "module": "Vendor Portal",
  "name": "Vendor Rating Log",
