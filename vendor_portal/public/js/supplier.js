@@ -27,7 +27,7 @@ function load_supplier_dashboard(frm) {
                 frm.dashboard.set_headline(`
                     Total POs: ${data.total_pos || 0} |
                     Total Value: ₹ ${data.total_value || 0} |
-                    Avg Rating: ${data.avg_rating || 0} ⭐ |
+                    Avg Rating: ${data.avg_rating.toFixed(2) || 0} ⭐ |
                     Total Ratings: ${data.total_ratings || 0}
                 `);
             }

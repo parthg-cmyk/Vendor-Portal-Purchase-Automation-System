@@ -26,8 +26,16 @@ app_include_js = [
     "/assets/vendor_portal/js/purchase_order.js",
     "/assets/vendor_portal/js/purchase_order_list.js",
     "/assets/vendor_portal/js/supplier.js",
-    "/assets/vendor_portal/js/vendor_onboarding.js"
+    "/assets/vendor_portal/js/vendor_onboarding.js",
+    "/assets/vendor_portal/js/list_view.js",
+    "/assets/vendor_portal/js/purchase_invoice.js",
 ]
+
+jinja = {
+    "filters": [
+        "vendor_portal.utils.jinja.rating_stars"
+    ]
+}
 # Apps
 # ------------------
 
