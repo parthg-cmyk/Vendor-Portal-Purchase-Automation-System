@@ -31,6 +31,11 @@ doc_events = {
         "on_submit": "vendor_portal.overrides.purchase_receipt.on_submit"
     }
 }
+
+app_include_js = [
+    "/assets/vendor_portal/js/purchase_order.js",
+    "/assets/vendor_portal/js/purchase_order_list.js"
+]
 # Apps
 # ------------------
 
