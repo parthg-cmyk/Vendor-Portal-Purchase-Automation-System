@@ -522,4 +522,4 @@ def get_onboarding_status_summary():
     data["recent_submissions"] = recent or []
 
     return data
-
+    
