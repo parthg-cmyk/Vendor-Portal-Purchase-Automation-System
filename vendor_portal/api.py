@@ -246,6 +246,39 @@ def get_vendor_dashboard(supplier):
     return data
 
 
+def calculate_vendor_rating(supplier):
+    settings = frappe.get_single("Vendor Portal Settings")
+
+    weights = {
+        "Delivery": settings.rating_weight_delivery or 1,
+        "Pricing": settings.rating_weight_pricing or 1,
+        "Communication": settings.rating_weight_communication or 1,
+        "Quality": 1,
+    }
+
+    logs = frappe.db.sql(
+        """
+        SELECT rating_type, score
+        FROM `tabVendor Rating Log`
+        WHERE supplier = %s
+        """,
+        (supplier,),
+        as_dict=True,
+    )
+
+    total_weighted_score = 0
+    total_weight = 0
+
+    for row in logs:
+        weight = weights.get(row.rating_type, 1)
+        total_weighted_score += row.score * weight
+        total_weight += weight
+
+    avg_rating = round(total_weighted_score / total_weight, 2) if total_weight else 0
+
+    return avg_rating, len(logs)
+
+
 @frappe.whitelist()
 def submit_vendor_rating(
     supplier,
@@ -270,20 +303,7 @@ def submit_vendor_rating(
         frappe.throw("Score must be between 1 and 5")
 
     # -----------------------------
-    # ⚙️ Get Settings
-    # -----------------------------
-    settings = frappe.get_single("Vendor Portal Settings")
-
-    weights = {
-        "Delivery": settings.rating_weight_delivery or 1,
-        "Pricing": settings.rating_weight_pricing or 1,
-        "Communication": settings.rating_weight_communication or 1,
-        # ⚠️ IMPORTANT: Quality not in settings → default 1
-        "Quality": 1,
-    }
-
-    # -----------------------------
-    # 🚫 Prevent duplicate rating (optional but recommended)
+    # 🚫 Prevent duplicate rating
     # -----------------------------
     if purchase_order:
         exists = frappe.db.exists(
@@ -331,38 +351,24 @@ def submit_vendor_rating(
     doc.insert(ignore_permissions=True)
 
     # -----------------------------
-    # 📊 Recalculate Weighted Rating
+    # 📊 Recalculate Rating
     # -----------------------------
-    logs = frappe.db.sql(
-        """
-        SELECT rating_type, score
-        FROM `tabVendor Rating Log`
-        WHERE supplier = %s
-    """,
-        (supplier,),
-        as_dict=True,
-    )
+    avg_rating, count = calculate_vendor_rating(supplier)
 
-    total_weighted_score = 0
-    total_weight = 0
-
-    for row in logs:
-        weight = weights.get(row.rating_type, 1)
-        total_weighted_score += row.score * weight
-        total_weight += weight
-
-    avg_rating = round(total_weighted_score / total_weight, 2) if total_weight else 0
-
-    # -----------------------------
-    # 🔄 Update Supplier
-    # -----------------------------
     frappe.db.set_value(
         "Supplier",
         supplier,
-        {"custom_vendor_rating": avg_rating, "custom_total_rating_count": len(logs)},
+        {
+            "custom_vendor_rating": avg_rating,
+            "custom_total_rating_count": count,
+        },
     )
 
-    return {"status": "success", "avg_rating": avg_rating, "total_ratings": len(logs)}
+    return {
+        "status": "success",
+        "avg_rating": avg_rating,
+        "total_ratings": count,
+    }
 
 
 @frappe.whitelist()
@@ -522,4 +528,68 @@ def get_onboarding_status_summary():
     data["recent_submissions"] = recent or []
 
     return data
-    
+
+
+def create_delivery_rating_for_pr(pr_name):
+    doc = frappe.get_doc("Purchase Receipt", pr_name)
+
+    if not doc.supplier:
+        return
+
+    # 🚫 Skip if already rated
+    exists = frappe.db.exists(
+        "Vendor Rating Log",
+        {
+            "supplier": doc.supplier,
+            "purchase_receipt": doc.name,
+            "rating_type": "Delivery",
+        },
+    )
+    if exists:
+        return
+
+    has_short = getattr(doc.flags, "has_short_delivery", False)
+
+    is_late = False
+    expected_dates = []
+
+    for item in doc.items:
+        if item.purchase_order:
+            expected_date = frappe.db.get_value(
+                "Purchase Order", item.purchase_order, "schedule_date"
+            )
+            if expected_date:
+                expected_dates.append(expected_date)
+
+    if expected_dates:
+        max_expected = max(expected_dates)
+
+        if doc.posting_date and max_expected:
+            delay_days = (doc.posting_date - max_expected).days
+            if delay_days > 2:
+                is_late = True
+
+    # 🎯 Score logic
+    if not is_late and not has_short:
+        score = 5
+    elif not is_late and has_short:
+        score = 4
+    elif is_late and not has_short:
+        score = 3
+    else:
+        score = 2
+
+    # 📝 Create Rating Log
+    rating_log = frappe.get_doc(
+        {
+            "doctype": "Vendor Rating Log",
+            "supplier": doc.supplier,
+            "purchase_receipt": doc.name,
+            "rating_type": "Delivery",
+            "score": score,
+        }
+    )
+
+    rating_log.insert(ignore_permissions=True)
+
+    return score

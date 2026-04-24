@@ -9,6 +9,21 @@ app_license = "mit"
 fixtures = [
     {"dt": "Custom Field", "filters": [["dt", "=", "Supplier"]]},
     {"dt": "Workflow", "filters": [["name", "=", "Vendor Onboarding Approval"]]},
+    {
+        "doctype": "Property Setter",
+        "filters": [
+            [
+                "doc_type",
+                "in",
+                [
+                    "Supplier",
+                    "Vendor Onboarding",
+                    "Purchase Order",
+                    "Vendor Rating Log",
+                ],
+            ],
+        ],
+    },
 ]
 
 override_doctype_class = {
@@ -19,7 +34,13 @@ doc_events = {
     "Purchase Receipt": {
         "validate": "vendor_portal.overrides.purchase_receipt.validate",
         "on_submit": "vendor_portal.overrides.purchase_receipt.on_submit",
-    }
+    },
+    "Vendor Onboarding": {
+        "after_insert": "vendor_portal.overrides.vendor_onboarding.after_insert_vendor_onboarding",
+    },
+    "Supplier": {
+        "on_update": "vendor_portal.overrides.supplier.on_update_supplier",
+    },
 }
 
 app_include_js = [
@@ -31,11 +52,7 @@ app_include_js = [
     "/assets/vendor_portal/js/purchase_invoice.js",
 ]
 
-jinja = {
-    "filters": [
-        "vendor_portal.utils.jinja.rating_stars"
-    ]
-}
+jinja = {"methods": ["vendor_portal.utils.jinja.rating_stars"]}
 
 has_permission = {
     "Vendor Rating Log": "vendor_portal.permissions.vendor_rating_log_has_permission"
@@ -45,256 +62,13 @@ permission_query_conditions = {
     "Vendor Onboarding": "vendor_portal.permissions.vendor_onboarding_query_conditions"
 }
 
-has_permission.update({
-    "Vendor Onboarding": "vendor_portal.permissions.vendor_onboarding_has_permission"
-})
-# Apps
-# ------------------
+has_permission.update(
+    {"Vendor Onboarding": "vendor_portal.permissions.vendor_onboarding_has_permission"}
+)
 
-# required_apps = []
-
-# Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": "vendor_portal",
-# 		"logo": "/assets/vendor_portal/logo.png",
-# 		"title": "Vendor Portal",
-# 		"route": "/vendor_portal",
-# 		"has_permission": "vendor_portal.api.permission.has_app_permission"
-# 	}
-# ]
-
-# Includes in <head>
-# ------------------
-
-# include js, css files in header of desk.html
-# app_include_css = "/assets/vendor_portal/css/vendor_portal.css"
-# app_include_js = "/assets/vendor_portal/js/vendor_portal.js"
-
-# include js, css files in header of web template
-# web_include_css = "/assets/vendor_portal/css/vendor_portal.css"
-# web_include_js = "/assets/vendor_portal/js/vendor_portal.js"
-
-# include custom scss in every website theme (without file extension ".scss")
-# website_theme_scss = "vendor_portal/public/scss/website"
-
-# include js, css files in header of web form
-# webform_include_js = {"doctype": "public/js/doctype.js"}
-# webform_include_css = {"doctype": "public/css/doctype.css"}
-
-# include js in page
-# page_js = {"page" : "public/js/file.js"}
-
-# include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
-# doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
-# doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
-# doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
-
-# Svg Icons
-# ------------------
-# include app icons in desk
-# app_include_icons = "vendor_portal/public/icons.svg"
-
-# Home Pages
-# ----------
-
-# application home page (will override Website Settings)
-# home_page = "login"
-
-# website user home page (by Role)
-# role_home_page = {
-# 	"Role": "home_page"
-# }
-
-# Generators
-# ----------
-
-# automatically create page for each record of this doctype
-# website_generators = ["Web Page"]
-
-# automatically load and sync documents of this doctype from downstream apps
-# importable_doctypes = [doctype_1]
-
-# Jinja
-# ----------
-
-# add methods and filters to jinja environment
-# jinja = {
-# 	"methods": "vendor_portal.utils.jinja_methods",
-# 	"filters": "vendor_portal.utils.jinja_filters"
-# }
-
-# Installation
-# ------------
-
-# before_install = "vendor_portal.install.before_install"
-# after_install = "vendor_portal.install.after_install"
-
-# Uninstallation
-# ------------
-
-# before_uninstall = "vendor_portal.uninstall.before_uninstall"
-# after_uninstall = "vendor_portal.uninstall.after_uninstall"
-
-# Integration Setup
-# ------------------
-# To set up dependencies/integrations with other apps
-# Name of the app being installed is passed as an argument
-
-# before_app_install = "vendor_portal.utils.before_app_install"
-# after_app_install = "vendor_portal.utils.after_app_install"
-
-# Integration Cleanup
-# -------------------
-# To clean up dependencies/integrations with other apps
-# Name of the app being uninstalled is passed as an argument
-
-# before_app_uninstall = "vendor_portal.utils.before_app_uninstall"
-# after_app_uninstall = "vendor_portal.utils.after_app_uninstall"
-
-# Build
-# ------------------
-# To hook into the build process
-
-# after_build = "vendor_portal.build.after_build"
-
-# Desk Notifications
-# ------------------
-# See frappe.core.notifications.get_notification_config
-
-# notification_config = "vendor_portal.notifications.get_notification_config"
-
-# Permissions
-# -----------
-# Permissions evaluated in scripted ways
-
-# permission_query_conditions = {
-# 	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
-# }
-#
-# has_permission = {
-# 	"Event": "frappe.desk.doctype.event.event.has_permission",
-# }
-
-# Document Events
-# ---------------
-# Hook on document methods and events
-
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
-
-# Scheduled Tasks
-# ---------------
-
-# scheduler_events = {
-# 	"all": [
-# 		"vendor_portal.tasks.all"
-# 	],
-# 	"daily": [
-# 		"vendor_portal.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"vendor_portal.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"vendor_portal.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"vendor_portal.tasks.monthly"
-# 	],
-# }
-
-# Testing
-# -------
-
-# before_tests = "vendor_portal.install.before_tests"
-
-# Extend DocType Class
-# ------------------------------
-#
-# Specify custom mixins to extend the standard doctype controller.
-# extend_doctype_class = {
-# 	"Task": "vendor_portal.custom.task.CustomTaskMixin"
-# }
-
-# Overriding Methods
-# ------------------------------
-#
-# override_whitelisted_methods = {
-# 	"frappe.desk.doctype.event.event.get_events": "vendor_portal.event.get_events"
-# }
-#
-# each overriding function accepts a `data` argument;
-# generated from the base implementation of the doctype dashboard,
-# along with any modifications made in other Frappe apps
-# override_doctype_dashboards = {
-# 	"Task": "vendor_portal.task.get_dashboard_data"
-# }
-
-# exempt linked doctypes from being automatically cancelled
-#
-# auto_cancel_exempted_doctypes = ["Auto Repeat"]
-
-# Ignore links to specified DocTypes when deleting documents
-# -----------------------------------------------------------
-
-# ignore_links_on_delete = ["Communication", "ToDo"]
-
-# Request Events
-# ----------------
-# before_request = ["vendor_portal.utils.before_request"]
-# after_request = ["vendor_portal.utils.after_request"]
-
-# Job Events
-# ----------
-# before_job = ["vendor_portal.utils.before_job"]
-# after_job = ["vendor_portal.utils.after_job"]
-
-# User Data Protection
-# --------------------
-
-# user_data_fields = [
-# 	{
-# 		"doctype": "{doctype_1}",
-# 		"filter_by": "{filter_by}",
-# 		"redact_fields": ["{field_1}", "{field_2}"],
-# 		"partial": 1,
-# 	},
-# 	{
-# 		"doctype": "{doctype_2}",
-# 		"filter_by": "{filter_by}",
-# 		"partial": 1,
-# 	},
-# 	{
-# 		"doctype": "{doctype_3}",
-# 		"strict": False,
-# 	},
-# 	{
-# 		"doctype": "{doctype_4}"
-# 	}
-# ]
-
-# Authentication and authorization
-# --------------------------------
-
-# auth_hooks = [
-# 	"vendor_portal.auth.validate"
-# ]
-
-# Automatically update python controller files with type annotations for this app.
-# export_python_type_annotations = True
-
-# default_log_clearing_doctypes = {
-# 	"Logging DocType Name": 30  # days to retain logs
-# }
-
-# Translation
-# ------------
-# List of apps whose translatable strings should be excluded from this app's translations.
-# ignore_translatable_strings_from = []
+scheduler_events = {
+    "daily": ["vendor_portal.tasks.auto_calculate_vendor_ratings"],
+    "hourly": ["vendor_portal.tasks.auto_rate_deliveries"],
+    "weekly": ["vendor_portal.tasks.vendor_performance_digest"],
+    "cron": {"0 9 * * *": ["vendor_portal.tasks.auto_expire_stale_onboardings"]},
+}
