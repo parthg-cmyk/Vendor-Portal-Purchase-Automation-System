@@ -37,7 +37,9 @@ class VendorOnboarding(Document):
         settings = frappe.get_single("Vendor Portal Settings")
 
         if settings.min_documents_required > len(self.documents):
-                frappe.throw(_(f"Minimum {settings.min_documents_required} Documents Required"))
+            frappe.throw(
+                _(f"Minimum {settings.min_documents_required} Documents Required")
+            )
 
     def check_duplicate_gst(self):
         if not self.gst_number:
@@ -62,3 +64,23 @@ class VendorOnboarding(Document):
     def on_submit(self):
         self.onboarding_status = "Under Review"
 
+    def create_supplier(self):
+        # Prevent duplicate supplier creation
+        if frappe.db.exists("Supplier", {"supplier_name": self.supplier_name}):
+            return
+
+        supplier = frappe.get_doc(
+            {
+                "doctype": "Supplier",
+                "supplier_name": self.supplier_name,
+                "supplier_group": "All Supplier Groups",
+                "custom_vendor_category": self.vendor_category,
+            }
+        )
+
+        supplier.insert(ignore_permissions=True)
+
+    def before_save(self):
+        if self.onboarding_status == "Approved":
+            if not frappe.db.exists("Supplier", {"supplier_name": self.supplier_name}):
+                self.create_supplier()

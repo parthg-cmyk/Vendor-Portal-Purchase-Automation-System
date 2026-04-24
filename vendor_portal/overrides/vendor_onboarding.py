@@ -2,7 +2,7 @@ import frappe
 
 
 def after_insert_vendor_onboarding(doc, method):
-    if not doc.email_id:
+    if not doc.email:
         return
 
     message = f"""
