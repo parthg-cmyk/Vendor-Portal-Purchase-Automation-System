@@ -1,4 +1,5 @@
 import frappe
+from frappe.utils.file_manager import save_file
 
 
 @frappe.whitelist(allow_guest=True)
@@ -593,3 +594,109 @@ def create_delivery_rating_for_pr(pr_name):
     rating_log.insert(ignore_permissions=True)
 
     return score
+
+
+@frappe.whitelist(allow_guest=True)
+def create_vendor_onboarding(**data):
+    """
+    Create Vendor Onboarding from Web Page
+    Handles:
+    - Basic fields
+    - Child table (Documents)
+    - File uploads
+    """
+
+    try:
+        # -----------------------------
+        # 1. Create Main Document
+        # -----------------------------
+        doc = frappe.get_doc(
+            {
+                "doctype": "Vendor Onboarding",
+                "supplier_name": data.get("supplier_name"),
+                "company_name": data.get("company_name"),
+                "email": data.get("email"),
+                "phone": data.get("phone"),
+                "gst_number": data.get("gst_number"),
+                "pan_number": data.get("pan_number"),
+                "vendor_category": data.get("vendor_category"),
+                "bank_name": data.get("bank_name"),
+                "bank_account_name": data.get("bank_account_name"),
+                "ifsc_code": data.get("ifsc_code"),
+                "address_line_1": data.get("address_line_1"),
+                "city": data.get("city"),
+                "state": data.get("state"),
+                "pincode": data.get("pincode"),
+                "contact_person": data.get("contact_person"),
+                "onboarding_status": "Draft",
+            }
+        )
+
+        # -----------------------------
+        # 2. Handle Documents (Child Table)
+        # -----------------------------
+        documents = frappe.parse_json(data.get("documents") or "[]")
+
+        if len(documents) < 2:
+            frappe.throw("Minimum 2 documents are required")
+
+        for d in documents:
+            file_url = None
+
+            # If file is base64 or file data sent
+            if d.get("filedata") and d.get("filename"):
+                file_doc = save_file(
+                    d.get("filename"),
+                    d.get("filedata"),
+                    "Vendor Onboarding",
+                    None,
+                    is_private=1,
+                )
+                file_url = file_doc.file_url
+
+            doc.append(
+                "documents",
+                {
+                    "document_type": d.get("document_type"),
+                    "document_file": d.get("document_file"),  # ✅ direct file_url
+                },
+            )
+
+        # -----------------------------
+        # 3. Insert Document
+        # -----------------------------
+        doc.insert(ignore_permissions=True)
+        frappe.db.commit()
+
+        # -----------------------------
+        # 4. Response
+        # -----------------------------
+        return {
+            "status": "success",
+            "message": "✅ Application Submitted Successfully",
+            "application_id": doc.name,
+        }
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Vendor Onboarding API Error")
+
+        return {"status": "error", "message": str(e)}
+
+@frappe.whitelist(allow_guest=True)
+def get_vendor_status(application_id):
+    try:
+        doc = frappe.get_doc("Vendor Onboarding", application_id)
+
+        return {
+            "status": "success",
+            "name": doc.name,
+            "company_name": doc.company_name,
+            "onboarding_status": doc.onboarding_status,
+            "rejection_reason": doc.rejection_reason
+        }
+
+    except frappe.DoesNotExistError:
+        return {
+            "status": "error",
+            "message": "Application not found"
+        }

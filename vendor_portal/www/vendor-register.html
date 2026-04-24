@@ -1,0 +1,318 @@
+{% extends "templates/web.html" %}
+
+{% block page_content %}
+
+<div class="vendor-container">
+
+    <h2 class="fade-in">Vendor Registration</h2>
+
+    <form id="vendorForm" class="fade-in">
+
+        <div class="grid">
+            <input type="text" id="supplier_name" placeholder="Supplier Name *" required>
+            <input type="text" id="company_name" placeholder="Company Name *" required>
+
+            <input type="email" id="email" placeholder="Email *" required>
+            <input type="text" id="phone" placeholder="Phone *" required>
+
+            <input type="text" id="gst_number" placeholder="GST Number">
+            <input type="text" id="pan_number" placeholder="PAN Number">
+
+            <input type="text" id="vendor_category" placeholder="Vendor Category *" required>
+
+            <input type="text" id="bank_name" placeholder="Bank Name">
+            <input type="text" id="bank_account_name" placeholder="Bank Account Name">
+            <input type="text" id="ifsc_code" placeholder="IFSC Code">
+
+            <input type="text" id="address_line_1" placeholder="Address Line 1 *" required>
+            <input type="text" id="city" placeholder="City *" required>
+            <input type="text" id="state" placeholder="State *" required>
+            <input type="text" id="pincode" placeholder="Pincode">
+
+            <input type="text" id="contact_person" placeholder="Contact Person">
+        </div>
+
+        <!-- DOCUMENT SECTION -->
+        <h4 class="doc-title">Documents (Minimum 2 Required)</h4>
+
+        <div class="doc-table">
+            <div class="doc-header">
+                <div>No.</div>
+                <div>Document Type *</div>
+                <div>Document File *</div>
+                <div>Action</div>
+            </div>
+
+            <div id="docBody"></div>
+        </div>
+
+        <button type="button" class="add-btn" onclick="addRow()">+ Add Row</button>
+
+        <button type="submit" class="submit-btn">Submit Application</button>
+
+    </form>
+
+    <div id="msg"></div>
+
+</div>
+
+<!-- STYLING -->
+<style>
+    /* (UNCHANGED YOUR CSS) */
+    .vendor-container {
+        max-width: 950px;
+        margin: 40px auto;
+        background: #fff;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    }
+
+    h2 {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    input {
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        transition: 0.3s;
+    }
+
+    input:focus {
+        border-color: #5e64ff;
+        box-shadow: 0 0 0 2px rgba(94, 100, 255, 0.2);
+    }
+
+    .doc-title {
+        margin-top: 30px;
+    }
+
+    .doc-table {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .doc-header,
+    .doc-row {
+        display: grid;
+        grid-template-columns: 60px 1fr 1fr 80px;
+        align-items: center;
+    }
+
+    .doc-header {
+        background: #f7f7f7;
+        font-weight: 600;
+        padding: 10px;
+    }
+
+    .doc-row {
+        padding: 10px;
+        border-top: 1px solid #eee;
+        animation: fade 0.3s ease;
+    }
+
+    .upload-btn {
+        background: #5e64ff;
+        color: white;
+        border: none;
+        padding: 6px 10px;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    .delete-btn {
+        background: #ff5252;
+        color: white;
+        border: none;
+        padding: 6px 8px;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    .file-name {
+        font-size: 12px;
+        margin-left: 5px;
+        color: #555;
+    }
+
+    .add-btn {
+        margin-top: 10px;
+        padding: 8px 12px;
+        background: #2ecc71;
+        color: white;
+        border: none;
+        border-radius: 5px;
+    }
+
+    .submit-btn {
+        margin-top: 20px;
+        width: 100%;
+        padding: 12px;
+        background: #5e64ff;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+    }
+
+    .fade-in {
+        animation: fade 0.5s ease;
+    }
+
+    @keyframes fade {
+        from {
+            opacity: 0;
+            transform: translateY(5px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+
+<!-- SCRIPT -->
+<script>
+    /* (UNCHANGED YOUR JS) */
+    let documents = [];
+
+    function addRow() {
+        let index = documents.length;
+
+        let row = document.createElement("div");
+        row.className = "doc-row";
+        row.id = `row_${index}`;
+
+        row.innerHTML = `
+        <div>${index + 1}</div>
+
+        <div>
+            <select id="type_${index}">
+                <option value="">Select</option>
+                <option>GST Certificate</option>
+                <option>PAN Card</option>
+                <option>Bank Statement</option>
+                <option>Trade License</option>
+                <option>MSME Certificate</option>
+                <option>Other</option>
+            </select>
+        </div>
+
+        <div>
+            <button type="button" class="upload-btn" onclick="uploadFile(${index})">Upload</button>
+            <span id="file_${index}" class="file-name"></span>
+        </div>
+
+        <div>
+            <button type="button" class="delete-btn" onclick="deleteRow(${index})">X</button>
+        </div>
+    `;
+
+        document.getElementById("docBody").appendChild(row);
+
+        documents.push({ file: "" });
+    }
+
+    function uploadFile(i) {
+        new frappe.ui.FileUploader({
+            allow_multiple: false,
+            on_success(file) {
+                documents[i].file = file.file_url;
+                document.getElementById(`file_${i}`).innerText = file.file_name;
+            }
+        });
+    }
+
+    function deleteRow(i) {
+        document.getElementById(`row_${i}`).remove();
+        documents[i] = null;
+    }
+
+    function getValidDocuments() {
+        let valid = [];
+
+        documents.forEach((d, i) => {
+            if (!d) return;
+
+            let type = document.getElementById(`type_${i}`)?.value;
+
+            if (type && d.file) {
+                valid.push({
+                    document_type: type,
+                    document_file: d.file
+                });
+            }
+        });
+
+        return valid;
+    }
+
+    document.getElementById("vendorForm").onsubmit = async function (e) {
+        e.preventDefault();
+
+        let msg = document.getElementById("msg");
+        msg.innerHTML = "⏳ Submitting...";
+        msg.style.color = "#555";
+
+        let docList = getValidDocuments();
+
+        if (docList.length < 2) {
+            msg.innerHTML = "❌ Minimum 2 valid documents required";
+            msg.style.color = "red";
+            return;
+        }
+
+        try {
+            let res = await frappe.call({
+                method: "vendor_portal.api.create_vendor_onboarding",
+                args: {
+                    supplier_name: supplier_name.value,
+                    company_name: company_name.value,
+                    email: email.value,
+                    phone: phone.value,
+                    gst_number: gst_number.value,
+                    pan_number: pan_number.value,
+                    vendor_category: vendor_category.value,
+                    bank_name: bank_name.value,
+                    bank_account_name: bank_account_name.value,
+                    ifsc_code: ifsc_code.value,
+                    address_line_1: address_line_1.value,
+                    city: city.value,
+                    state: state.value,
+                    pincode: pincode.value,
+                    contact_person: contact_person.value,
+                    documents: docList
+                }
+            });
+
+            if (res.message?.status === "success") {
+                msg.innerHTML = `✅ ${res.message.message} <br> ID: <b>${res.message.application_id}</b>`;
+                msg.style.color = "green";
+
+                document.getElementById("vendorForm").reset();
+                document.getElementById("docBody").innerHTML = "";
+                documents = [];
+            } else {
+                msg.innerHTML = `❌ ${res.message?.message || "Something went wrong"}`;
+                msg.style.color = "red";
+            }
+
+        } catch (error) {
+            msg.innerHTML = "❌ Server Error. Please try again.";
+            msg.style.color = "red";
+            console.error(error);
+        }
+    };
+</script>
+
+{% endblock %}

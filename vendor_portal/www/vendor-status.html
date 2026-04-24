@@ -1,0 +1,149 @@
+{% extends "templates/web.html" %}
+
+{% block page_content %}
+
+<div class="status-container">
+
+    <h2 class="fade-in">Check Vendor Application Status</h2>
+
+    <div class="search-box fade-in">
+        <input type="text" id="application_id" placeholder="Enter Application ID (e.g. VOB-2026-00001)">
+        <button onclick="checkStatus()">Check Status</button>
+    </div>
+
+    <div id="result" class="result-card"></div>
+
+</div>
+
+<style>
+    .status-container {
+        max-width: 700px;
+        margin: 60px auto;
+        background: #fff;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        text-align: center;
+    }
+
+    .search-box {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .search-box input {
+        flex: 1;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+    }
+
+    .search-box button {
+        padding: 12px 20px;
+        background: #5e64ff;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+
+    .result-card {
+        margin-top: 25px;
+        padding: 20px;
+        border-radius: 8px;
+        background: #f9f9f9;
+        display: none;
+        text-align: left;
+    }
+
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        color: white;
+        font-size: 12px;
+        display: inline-block;
+    }
+
+    .draft {
+        background: gray;
+    }
+
+    .review {
+        background: orange;
+    }
+
+    .approved {
+        background: green;
+    }
+
+    .rejected {
+        background: red;
+    }
+
+    .fade-in {
+        animation: fade 0.5s ease;
+    }
+
+    @keyframes fade {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+
+<script>
+    async function checkStatus() {
+        let id = document.getElementById("application_id").value;
+        let result = document.getElementById("result");
+
+        if (!id) {
+            result.style.display = "block";
+            result.innerHTML = "❌ Please enter Application ID";
+            return;
+        }
+
+        result.style.display = "block";
+        result.innerHTML = "⏳ Checking...";
+
+        try {
+            let res = await frappe.call({
+                method: "vendor_portal.api.get_vendor_status",
+                args: { application_id: id }
+            });
+
+            let data = res.message;
+
+            if (data.status === "error") {
+                result.innerHTML = `❌ ${data.message}`;
+                return;
+            }
+
+            let statusClass = data.onboarding_status.toLowerCase().replace(" ", "");
+
+            result.innerHTML = `
+            <h3>Application Details</h3>
+            <p><b>ID:</b> ${data.name}</p>
+            <p><b>Company:</b> ${data.company_name}</p>
+            <p><b>Status:</b> 
+                <span class="status-badge ${statusClass}">
+                    ${data.onboarding_status}
+                </span>
+            </p>
+            ${data.rejection_reason ? `<p><b>Reason:</b> ${data.rejection_reason}</p>` : ""}
+        `;
+
+        } catch (err) {
+            result.innerHTML = "❌ Server Error";
+            console.error(err);
+        }
+    }
+</script>
+
+{% endblock %}
