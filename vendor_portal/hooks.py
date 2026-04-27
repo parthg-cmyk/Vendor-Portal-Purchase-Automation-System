@@ -50,6 +50,7 @@ app_include_js = [
     "/assets/vendor_portal/js/vendor_onboarding.js",
     "/assets/vendor_portal/js/list_view.js",
     "/assets/vendor_portal/js/purchase_invoice.js",
+    "/assets/vendor_portal/js/item.js",
 ]
 
 jinja = {"methods": ["vendor_portal.utils.jinja.rating_stars"]}

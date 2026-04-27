@@ -1,5 +1,7 @@
 import frappe
 from frappe.utils.file_manager import save_file
+import csv
+import io
 
 
 @frappe.whitelist(allow_guest=True)
@@ -682,6 +684,7 @@ def create_vendor_onboarding(**data):
 
         return {"status": "error", "message": str(e)}
 
+
 @frappe.whitelist(allow_guest=True)
 def get_vendor_status(application_id):
     try:
@@ -692,11 +695,167 @@ def get_vendor_status(application_id):
             "name": doc.name,
             "company_name": doc.company_name,
             "onboarding_status": doc.onboarding_status,
-            "rejection_reason": doc.rejection_reason
+            "rejection_reason": doc.rejection_reason,
         }
 
     except frappe.DoesNotExistError:
-        return {
-            "status": "error",
-            "message": "Application not found"
-        }
+        return {"status": "error", "message": "Application not found"}
+
+
+@frappe.whitelist()
+def get_onboarding_pipeline():
+    return frappe.db.sql(
+        """
+        SELECT 
+            IFNULL(onboarding_status, 'Unknown') as status,
+            COUNT(*) as count
+        FROM `tabVendor Onboarding`
+        GROUP BY onboarding_status
+    """,
+        as_dict=1,
+    )
+
+
+# 📊 PO Volume by Vendor Category
+@frappe.whitelist()
+def get_po_by_category():
+    return frappe.db.sql(
+        """
+        SELECT 
+            IFNULL(s.custom_vendor_category, 'Unknown') as category,
+            SUM(po.grand_total) as total
+        FROM `tabPurchase Order` po
+        LEFT JOIN `tabSupplier` s ON po.supplier = s.name
+        WHERE po.docstatus = 1
+        GROUP BY s.custom_vendor_category
+    """,
+        as_dict=1,
+    )
+
+
+# 📉 Delivery Performance Trend (Monthly)
+@frappe.whitelist()
+def get_delivery_trend():
+    return frappe.db.sql(
+        """
+        SELECT 
+            DATE_FORMAT(pr.posting_date, '%%Y-%%m') as period,
+            (
+                SUM(CASE WHEN pr.posting_date THEN 1 ELSE 0 END)
+                / COUNT(*)
+            ) * 100 as value
+        FROM `tabPurchase Receipt` pr
+        WHERE pr.docstatus = 1
+        GROUP BY period
+        ORDER BY period
+    """,
+        as_dict=1,
+    )
+
+
+@frappe.whitelist()
+def get_rating_distribution():
+    return frappe.db.sql(
+        """
+        SELECT 
+            CASE 
+                WHEN avg_score < 3 THEN '0-3'
+                WHEN avg_score < 4 THEN '4'
+                ELSE '5'
+            END as bucket,
+            COUNT(*) as count
+        FROM (
+            SELECT 
+                supplier,
+                AVG(score) as avg_score
+            FROM `tabVendor Rating Log`
+            GROUP BY supplier
+        ) t
+        GROUP BY bucket
+        ORDER BY bucket
+    """,
+        as_dict=1,
+    )
+
+
+@frappe.whitelist(allow_guest=True)
+def upload_vendor_onboarding_csv():
+    file = frappe.request.files.get("file")
+
+    if not file:
+        frappe.throw("CSV file is required")
+
+    content = file.stream.read().decode("utf-8")
+    reader = csv.DictReader(io.StringIO(content))
+    rows = list(reader)
+
+    frappe.enqueue(
+        method="vendor_portal.api.process_vendor_onboarding",
+        queue="long",
+        timeout=600,
+        rows=rows,
+        user=frappe.session.user,
+    )
+
+    return {"message": "Vendor Onboarding import started in background"}
+
+
+def process_vendor_onboarding(rows, user):
+    frappe.set_user(user)
+
+    success = 0
+    failed = 0
+    errors = []
+
+    for i, row in enumerate(rows, start=1):
+        try:
+            # Required fields validation
+            required_fields = [
+                "supplier_name",
+                "company_name",
+                "email",
+                "phone",
+                "vendor_category",
+                "address_line_1",
+                "city",
+                "state",
+            ]
+
+            for field in required_fields:
+                if not row.get(field):
+                    raise Exception(f"Missing {field}")
+
+            # Create Vendor Onboarding
+            doc = frappe.get_doc(
+                {
+                    "doctype": "Vendor Onboarding",
+                    "supplier_name": row.get("supplier_name"),
+                    "company_name": row.get("company_name"),
+                    "email": row.get("email"),
+                    "phone": row.get("phone"),
+                    "gst_number": row.get("gst_number"),
+                    "pan_number": row.get("pan_number"),
+                    "vendor_category": row.get("vendor_category"),
+                    "bank_name": row.get("bank_name"),
+                    "bank_account_name": row.get("bank_account_name"),
+                    "ifsc_code": row.get("ifsc_code"),
+                    "address_line_1": row.get("address_line_1"),
+                    "city": row.get("city"),
+                    "state": row.get("state"),
+                    "pincode": row.get("pincode"),
+                    "contact_person": row.get("contact_person"),
+                    "onboarding_status": "Draft",
+                }
+            )
+
+            doc.insert(ignore_permissions=True)
+
+            success += 1
+
+        except Exception as e:
+            failed += 1
+            errors.append(f"Row {i}: {str(e)}")
+
+    frappe.log_error("\n".join(errors), "Vendor Onboarding Import Errors")
+
+    return {"success": success, "failed": failed}

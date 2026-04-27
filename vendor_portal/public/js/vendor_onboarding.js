@@ -1,5 +1,5 @@
-frappe.ui.form.on('Vendor Onboarding',{
-    refresh(frm){
+frappe.ui.form.on('Vendor Onboarding', {
+    refresh(frm) {
         add_approve_reject_buttons(frm);
 
         update_document_progress(frm);
@@ -13,6 +13,7 @@ frappe.ui.form.on('Vendor Onboarding',{
         validate_gst(frm);
     }
 })
+
 
 function add_approve_reject_buttons(frm) {
 
