@@ -80,7 +80,7 @@ class VendorOnboarding(Document):
 
         supplier.insert(ignore_permissions=True)
 
-    def before_save(self):
-        if self.onboarding_status == "Approved":
+    def on_update(self):
+        if (self.has_value_changed("onboarding_status") and  self.onboarding_status == "Approved"):
             if not frappe.db.exists("Supplier", {"supplier_name": self.supplier_name}):
                 self.create_supplier()
