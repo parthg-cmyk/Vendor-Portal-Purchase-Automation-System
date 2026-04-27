@@ -24,6 +24,12 @@ fixtures = [
             ],
         ],
     },
+    {
+        "doctype": "Print Format",
+        "filters": [
+            ["name", "in", ["Vendor Enhanced PO"]],
+        ],
+    }
 ]
 
 override_doctype_class = {
