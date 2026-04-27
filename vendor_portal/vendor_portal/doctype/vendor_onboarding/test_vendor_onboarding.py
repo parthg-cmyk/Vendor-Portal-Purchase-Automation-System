@@ -98,7 +98,7 @@ class TestVendorOnboarding(unittest.TestCase):
 
     # ✅ Duplicate GST blocked
     def test_duplicate_gst_blocked(self):
-        gst = "22AAAAA9999A1Z5"  # fixed GST for this test
+        gst = f"22AAAAA{random.randint(1000,9999)}A1Z5"  # fixed GST for this test
 
         doc1 = self.get_valid_doc()
         doc1.gst_number = gst
