@@ -88,7 +88,7 @@ function load_delivery_chart() {
 					labels: r.message.map(d => d.period),
 					datasets: [{ values: r.message.map(d => d.value) }]
 				},
-				type: 'line'
+				type: 'line',
 			});
 		}
 	});

@@ -101,8 +101,8 @@ def blacklist_supplier(supplier, reason):
 
 @frappe.whitelist()
 def get_vendor_settings():
-    # Replace with your settings doctype if exists
-    return {"low_rating_threshold": 2}
+    settings = frappe.get_single("Vendor Portal Settings")
+    return {"low_rating_threshold": settings.low_rating_threshold or 3}
 
 
 @frappe.whitelist()
@@ -739,11 +739,8 @@ def get_delivery_trend():
     return frappe.db.sql(
         """
         SELECT 
-            DATE_FORMAT(pr.posting_date, '%%Y-%%m') as period,
-            (
-                SUM(CASE WHEN pr.posting_date THEN 1 ELSE 0 END)
-                / COUNT(*)
-            ) * 100 as value
+            DATE_FORMAT(pr.posting_date, '%Y-%m') as period,
+            ( SUM(CASE WHEN pr.posting_date THEN 1 ELSE 0 END) / COUNT(*) ) * 100 as value
         FROM `tabPurchase Receipt` pr
         WHERE pr.docstatus = 1
         GROUP BY period
@@ -845,17 +842,27 @@ def process_vendor_onboarding(rows, user):
                     "pincode": row.get("pincode"),
                     "contact_person": row.get("contact_person"),
                     "onboarding_status": "Draft",
+                    "documents": [
+                        {
+                            "document_type": "GST Certificate",
+                            "document_file": "/private/files/Screenshot from 2026-04-24 17-49-39.png",
+                        },
+                        {
+                            "document_type": "PAN Card",
+                            "document_file": "/private/files/Screenshot from 2026-04-24 17-49-39.png",
+                        },
+                    ],
                 }
             )
-
+            frappe.log(doc.as_dict())
             doc.insert(ignore_permissions=True)
-
             success += 1
 
         except Exception as e:
             failed += 1
             errors.append(f"Row {i}: {str(e)}")
 
-    frappe.log_error("\n".join(errors), "Vendor Onboarding Import Errors")
+    if errors:
+        frappe.log_error("\n".join(errors), "Vendor Onboarding Import Errors")
 
     return {"success": success, "failed": failed}
